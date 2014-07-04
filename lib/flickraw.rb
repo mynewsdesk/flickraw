@@ -38,11 +38,12 @@ module FlickRaw
   REST_PATH='/services/rest/?'.freeze
   UPLOAD_PATH='/services/upload/'.freeze
   REPLACE_PATH='/services/replace/'.freeze
+  SSL_PORT=443
 
-  AUTH_PATH='http://flickr.com/services/auth/?'.freeze
-  PHOTO_SOURCE_URL='http://farm%s.static.flickr.com/%s/%s_%s%s.%s'.freeze
-  URL_PROFILE='http://www.flickr.com/people/'.freeze
-  URL_PHOTOSTREAM='http://www.flickr.com/photos/'.freeze
+  AUTH_PATH='https://flickr.com/services/auth/?'.freeze
+  PHOTO_SOURCE_URL='https://farm%s.static.flickr.com/%s/%s_%s%s.%s'.freeze
+  URL_PROFILE='https://www.flickr.com/people/'.freeze
+  URL_PHOTOSTREAM='https://www.flickr.com/photos/'.freeze
   URL_SHORT='http://flic.kr/p/'.freeze
 
   class Response
@@ -166,6 +167,7 @@ module FlickRaw
       http_response = open_flickr do |http|
         request = Net::HTTP::Post.new(REST_PATH, 'User-Agent' => "Flickraw/#{VERSION}")
         request.set_form_data(build_args(args, req))
+        http.use_ssl = true
         http.request(request)
       end
       process_response(req, http_response)
@@ -209,7 +211,10 @@ module FlickRaw
     end
 
     def open_flickr
-      Net::HTTP::Proxy(FlickRawOptions['proxy_host'], FlickRawOptions['proxy_port'], FlickRawOptions['proxy_user'], FlickRawOptions['proxy_password']).start(FLICKR_HOST) {|http|
+      http = Net::HTTP.new(FLICKR_HOST, 443, FlickRawOptions['proxy_host'], FlickRawOptions['proxy_port'], FlickRawOptions['proxy_user'], FlickRawOptions['proxy_password'])
+      http.use_ssl = true
+
+      http.start {|http|
         http.read_timeout = FlickRawOptions['timeout'] if FlickRawOptions.key?('timeout')
         yield http
       }
